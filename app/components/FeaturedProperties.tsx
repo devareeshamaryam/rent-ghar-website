@@ -12,10 +12,13 @@ const FEATURED = [
   { id: "6", price: "90 Lac",  type: "House for Rent",     beds: 4, baths: 3, area: "7 Marla",   location: "G-11, Islamabad",        date: "2 days ago",  href: "/listings/6", images: ["https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=600&q=80"] },
 ];
 
+const CARD_WIDTH = 280;
+
 export default function FeaturedProperties() {
   const scrollRef  = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLDivElement>(null);
   const [visible,  setVisible]  = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
 
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -26,9 +29,25 @@ export default function FeaturedProperties() {
     return () => obs.disconnect();
   }, []);
 
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const idx = Math.round(el.scrollLeft / (CARD_WIDTH + 16));
+      setActiveIdx(Math.min(idx, FEATURED.length - 1));
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
   const scroll = (dir: "left" | "right") => {
     if (!scrollRef.current) return;
-    scrollRef.current.scrollBy({ left: dir === "left" ? -310 : 310, behavior: "smooth" });
+    scrollRef.current.scrollBy({ left: dir === "left" ? -(CARD_WIDTH + 16) : (CARD_WIDTH + 16), behavior: "smooth" });
+  };
+
+  const scrollToIdx = (i: number) => {
+    if (!scrollRef.current) return;
+    scrollRef.current.scrollTo({ left: i * (CARD_WIDTH + 16), behavior: "smooth" });
   };
 
   return (
@@ -40,7 +59,6 @@ export default function FeaturedProperties() {
         .fp-scroll::-webkit-scrollbar { display: none; }
         .fp-scroll { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* ribbon */
         .fp-ribbon {
           position: absolute;
           top: 10px;
@@ -65,7 +83,6 @@ export default function FeaturedProperties() {
           border-bottom: 4px solid transparent;
         }
 
-        /* card animation */
         .fp-card {
           opacity: 0;
           transform: translateY(24px);
@@ -73,7 +90,6 @@ export default function FeaturedProperties() {
         }
         .fp-card.show { opacity: 1; transform: translateY(0); }
 
-        /* card hover — full visible */
         .fp-card-inner {
           transition: transform 0.25s ease, box-shadow 0.25s ease;
           border-radius: 14px;
@@ -86,7 +102,6 @@ export default function FeaturedProperties() {
           z-index: 50;
         }
 
-        /* arrow */
         .fp-arrow {
           transition: background 0.2s, color 0.2s, transform 0.18s;
           flex-shrink: 0;
@@ -97,7 +112,6 @@ export default function FeaturedProperties() {
           transform: scale(1.1);
         }
 
-        /* heading underline */
         .fp-underline { position: relative; display: inline-block; }
         .fp-underline::after {
           content: '';
@@ -109,24 +123,25 @@ export default function FeaturedProperties() {
           transition: width 0.65s ease 0.2s;
         }
         .fp-underline.show::after { width: 100%; }
+
+        .fp-dot {
+          transition: width 0.25s ease, background 0.25s ease;
+        }
       `}</style>
 
-      <div ref={sectionRef} className="fp-font bg-white py-10 px-4 sm:px-6 lg:px-10">
-        <div className="max-w-7xl mx-auto">
+      <div ref={sectionRef} className="fp-font bg-white" style={{ paddingTop: "80px", paddingBottom: "60px" }}>
 
-          {/* ── Top row: heading left, arrows + View All right ── */}
-          <div className="flex items-center justify-between mb-6">
+          {/* ── Top row — padded ── */}
+          <div className="flex items-center justify-between" style={{ paddingLeft: "40px", paddingRight: "40px", marginBottom: "36px" }}>
 
-            {/* Left: label + heading */}
             <div className={`transition-all duration-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`}>
-              <p className="text-[10px] font-extrabold text-[#f0c040] uppercase tracking-widest mb-1">Featured</p>
+              <p className="text-[10px] font-extrabold text-[#f0c040] uppercase tracking-widest mb-1.5">Featured</p>
               <h2 className="text-xl sm:text-2xl font-extrabold text-[#1a2332]">
                 <span className={`fp-underline ${visible ? "show" : ""}`}>Exclusive Properties</span>
               </h2>
             </div>
 
-            {/* Right: arrows + View All — all aligned */}
-            <div className={`flex items-center gap-2 transition-all duration-500 delay-200 ${visible ? "opacity-100" : "opacity-0"}`}>
+            <div className={`flex items-center gap-2.5 transition-all duration-500 delay-200 ${visible ? "opacity-100" : "opacity-0"}`}>
               <button onClick={() => scroll("left")}
                 className="fp-arrow flex items-center justify-center w-8 h-8 rounded-full bg-white border-2 border-[#1a2332] text-[#1a2332] shadow-sm">
                 <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -146,16 +161,19 @@ export default function FeaturedProperties() {
             </div>
           </div>
 
-          {/* ── Cards ── */}
-          <div ref={scrollRef} className="fp-scroll flex gap-4 overflow-x-auto pb-1" style={{ paddingTop: "8px", paddingBottom: "12px", marginTop: "-8px" }}>
+          {/* ── Cards — full width scroll with left padding ── */}
+          <div
+            ref={scrollRef}
+            className="fp-scroll flex overflow-x-auto"
+            style={{ paddingLeft: "40px", paddingRight: "40px", paddingTop: "10px", paddingBottom: "16px", gap: "20px" }}
+          >
             {FEATURED.map((listing, i) => (
               <div
                 key={listing.id}
                 className={`fp-card shrink-0 ${visible ? "show" : ""}`}
-                style={{ width: "272px", transitionDelay: `${i * 75}ms` }}
+                style={{ width: `${CARD_WIDTH}px`, transitionDelay: `${i * 75}ms` }}
               >
                 <div className="fp-card-inner relative">
-                  {/* Ribbon */}
                   <div className="fp-ribbon">FEATURED</div>
                   <PropertyCard
                     id={listing.id}
@@ -176,13 +194,18 @@ export default function FeaturedProperties() {
           </div>
 
           {/* Mobile dots */}
-          <div className="flex justify-center gap-1.5 mt-4 sm:hidden">
+          <div className="flex justify-center gap-2 mt-5 sm:hidden">
             {FEATURED.map((_, i) => (
-              <div key={i} className={`rounded-full ${i === 0 ? "w-4 h-1.5 bg-[#1a2332]" : "w-1.5 h-1.5 bg-[#1a2332]/20"}`} />
+              <button
+                key={i}
+                onClick={() => scrollToIdx(i)}
+                className={`fp-dot rounded-full h-1.5 ${
+                  i === activeIdx ? "w-4 bg-[#1a2332]" : "w-1.5 bg-[#1a2332]/20"
+                }`}
+              />
             ))}
           </div>
 
-        </div>
       </div>
     </>
   );
