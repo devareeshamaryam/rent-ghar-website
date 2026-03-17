@@ -72,13 +72,7 @@ export default function PropertyCard({
 
         .arrow-btn {
           transition: opacity 0.2s ease, background 0.2s ease;
-        }
-        @media (min-width: 640px) {
-          .arrow-btn { opacity: 0; }
-          .img-wrap:hover .arrow-btn { opacity: 1; }
-        }
-        @media (max-width: 639px) {
-          .arrow-btn { opacity: 1; }
+          opacity: 1;
         }
 
         .prop-img { transition: transform 0.45s ease; }
@@ -90,14 +84,14 @@ export default function PropertyCard({
           cursor: pointer; transition: background 0.2s, color 0.2s, border-color 0.2s;
           font-family: 'Nunito', sans-serif;
         }
-        .prop-btn-email {
+        .prop-btn-whatsapp {
           flex: 1; border: 1px solid #e0eaf5; color: #1a2332; background: white;
         }
-        .prop-btn-email:hover { background: #1a2332; color: white; border-color: #1a2332; }
+        .prop-btn-whatsapp:hover { background: #1a2332; color: white; border-color: #1a2332; }
         .prop-btn-call {
-          flex: 1; background: #1a2332; color: white; border: none;
+          flex: 1; border: 1px solid #e0eaf5; color: #1a2332; background: white; border: none;
         }
-        .prop-btn-call:hover { background: #f0c040; color: #1a2332; }
+        .prop-btn-call:hover { background: #1a2332; color: white; border-color: #1a2332; }
         .prop-btn-save {
           padding: 0 8px; border: 1px solid #e0eaf5; color: #1a2332; background: white;
         }
@@ -123,22 +117,32 @@ export default function PropertyCard({
               draggable={false}
             />
 
-            {/* Price badge */}
-            <div style={{ position: "absolute", bottom: 8, left: 8, background: "#1a2332", color: "white", fontSize: "10px", fontWeight: 700, padding: "2px 8px", borderRadius: "6px", zIndex: 10 }}>
+            {/* Price badge — bigger, cream-yellow semi-transparent bg */}
+            <div style={{
+              position: "absolute", bottom: 8, left: 8,
+              background: "rgba(255, 248, 180, 0.82)",
+              backdropFilter: "blur(4px)",
+              color: "#1a2332",
+              fontSize: "12px",
+              fontWeight: 800,
+              padding: "4px 10px",
+              borderRadius: "8px",
+              zIndex: 10,
+              border: "1px solid rgba(240,210,60,0.45)",
+              letterSpacing: "0.01em"
+            }}>
               Rs {price}
             </div>
 
-            {images.length > 1 && (
-              <>
-                <button onClick={prev} className="arrow-btn" style={{ position: "absolute", left: 6, top: "50%", transform: "translateY(-50%)", background: "rgba(26,35,50,0.7)", color: "white", borderRadius: "50%", width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, border: "none", cursor: "pointer" }}>
-                  <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
-                </button>
-                <button onClick={next} className="arrow-btn" style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "rgba(26,35,50,0.7)", color: "white", borderRadius: "50%", width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, border: "none", cursor: "pointer" }}>
-                  <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
-                </button>
-              </>
-            )}
+            {/* Always-visible arrows */}
+            <button onClick={prev} className="arrow-btn" style={{ position: "absolute", left: 6, top: "50%", transform: "translateY(-50%)", background: "rgba(26,35,50,0.65)", color: "white", borderRadius: "50%", width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, border: "none", cursor: "pointer" }}>
+              <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <button onClick={next} className="arrow-btn" style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", background: "rgba(26,35,50,0.65)", color: "white", borderRadius: "50%", width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 10, border: "none", cursor: "pointer" }}>
+              <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
 
+            {/* Dot indicators */}
             {images.length > 1 && (
               <div style={{ position: "absolute", bottom: 8, left: "50%", transform: "translateX(-50%)", display: "flex", gap: 4, zIndex: 10 }}>
                 {images.map((_, i) => (
@@ -189,19 +193,23 @@ export default function PropertyCard({
 
             {/* Type + Date */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-              <span style={{ color: "#f0c040", fontSize: "10px", fontWeight: 700, background: "#fffbea", border: "1px solid #f0e080", padding: "2px 6px", borderRadius: "6px" }}>
+              {/* Type badge — now black text on light bg */}
+              <span style={{ color: "#1a2332", fontSize: "10px", fontWeight: 700, background: "#f0f0f0", border: "1px solid #d0d0d0", padding: "2px 6px", borderRadius: "6px" }}>
                 {type}
               </span>
               <span style={{ fontSize: "10px", color: "#6b7a8d" }}>{date}</span>
             </div>
 
-            {/* Action buttons */}
+            {/* Action buttons — both same style (outlined), WhatsApp + Call */}
             <div style={{ display: "flex", gap: 6 }}>
-              <button onClick={(e) => e.preventDefault()} className="prop-btn prop-btn-email">
-                <svg width="9" height="9" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                Email
+              <button onClick={(e) => e.preventDefault()} className="prop-btn prop-btn-whatsapp" style={{ flex: 1, border: "1px solid #e0eaf5" }}>
+                {/* WhatsApp icon */}
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                WhatsApp
               </button>
-              <button onClick={(e) => e.preventDefault()} className="prop-btn prop-btn-call">
+              <button onClick={(e) => e.preventDefault()} className="prop-btn prop-btn-call" style={{ flex: 1, border: "1px solid #e0eaf5" }}>
                 <svg width="9" height="9" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92z"/></svg>
                 Call
               </button>

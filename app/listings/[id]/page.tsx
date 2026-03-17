@@ -1,32 +1,35 @@
- // Path: app/listings/[id]/page.tsx
-
-import { notFound } from "next/navigation";
+ import { notFound } from "next/navigation";
 import Propertydetailpage from "../../components/Propertydetailpage";
-import { getListingById } from "../../data/listingsData";
 
 interface Props {
   params: Promise<{ id: string }>;
 }
 
-/* ── Metadata ── */
+async function getProperty(id: string) {
+  try {
+    const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const res  = await fetch(`${base}/api/properties/${id}`, { cache: "no-store" });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function generateMetadata({ params }: Props) {
   const { id } = await params;
-  const listing = getListingById(id);
-
-  if (!listing) return { title: "Not Found" };
-
+  const p = await getProperty(id);
+  if (!p) return { title: "Not Found" };
   return {
-    title: `${listing.title} — RentGhars`,
-    description: `${listing.type} for rent in ${listing.location}. PKR ${listing.price}.`,
+    title:       p.seo?.metaTitle       || `${p.title} — RentGhars`,
+    description: p.seo?.metaDescription || p.address || "",
   };
 }
 
-/* ── Page ── */
 export default async function ListingDetailPage({ params }: Props) {
   const { id } = await params;
-  const listing = getListingById(id);
-
-  if (!listing) notFound();
-
-  return <Propertydetailpage property={listing} />;
+  const property = await getProperty(id);
+  if (!property) notFound();
+  return <Propertydetailpage property={property} />;
 }

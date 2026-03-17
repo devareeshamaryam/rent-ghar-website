@@ -1,4 +1,6 @@
-@import "tailwindcss";
+ @import "tailwindcss";
+@import 'leaflet/dist/leaflet.css';
+@source "../";
 
 :root {
   --background: #ffffff;
@@ -12,15 +14,75 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ── TipTap prose styles ── */
+.prose h1 { font-size: 1.5rem; font-weight: 700; margin: 0.75rem 0 0.5rem; }
+.prose h2 { font-size: 1.25rem; font-weight: 600; margin: 0.75rem 0 0.5rem; }
+.prose h3 { font-size: 1.1rem;  font-weight: 600; margin: 0.75rem 0 0.5rem; }
+.prose ul  { list-style: disc;    padding-left: 1.25rem; margin: 0.5rem 0; }
+.prose ol  { list-style: decimal; padding-left: 1.25rem; margin: 0.5rem 0; }
+.prose blockquote {
+  border-left: 3px solid #042C53;
+  padding-left: 0.75rem;
+  color: #6b7280;
+  margin: 0.5rem 0;
+  font-style: italic;
+}
+.prose code {
+  background: #f3f4f6;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.8rem;
+  font-family: monospace;
+}
+.prose p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: #d1d5db;
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+/* ── TipTap Editor Styles ── */
+.tiptap { outline: none; }
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: #d1d5db;
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+.tiptap h1 { font-size: 1.4rem; font-weight: 700; margin: 0.8rem 0 0.4rem; }
+.tiptap h2 { font-size: 1.2rem; font-weight: 600; margin: 0.7rem 0 0.4rem; }
+.tiptap h3 { font-size: 1.05rem; font-weight: 600; margin: 0.6rem 0 0.3rem; }
+.tiptap p  { margin: 0.3rem 0; line-height: 1.7; }
+.tiptap ul { list-style: disc;    padding-left: 1.4rem; margin: 0.4rem 0; }
+.tiptap ol { list-style: decimal; padding-left: 1.4rem; margin: 0.4rem 0; }
+.tiptap li { margin: 0.15rem 0; }
+.tiptap blockquote {
+  border-left: 3px solid #042C53;
+  padding-left: 0.8rem;
+  color: #6b7280;
+  font-style: italic;
+  margin: 0.5rem 0;
+}
+.tiptap code {
+  background: #f3f4f6;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.8rem;
+  font-family: monospace;
+  color: #042C53;
+}
+.tiptap a { color: #2563eb; text-decoration: underline; cursor: pointer; }
+.tiptap img { max-width: 100%; border-radius: 8px; margin: 0.5rem 0; }
+.tiptap table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; font-size: 0.85rem; }
+.tiptap th, .tiptap td { border: 1px solid #e5e7eb; padding: 6px 10px; text-align: left; min-width: 60px; }
+.tiptap th { background: #f9fafb; font-weight: 600; color: #042C53; }
+.tiptap tr:nth-child(even) td { background: #fafafa; }
+.tiptap .selectedCell { background: #eff6ff !important; }
