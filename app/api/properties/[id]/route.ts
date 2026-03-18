@@ -51,6 +51,19 @@ export async function PUT(req: NextRequest, { params }: Params) {
       )
     }
 
+    const contentType = req.headers.get('content-type') || ''
+
+    // ── Quick JSON update (e.g. status change from admin table) ──
+    if (contentType.includes('application/json')) {
+      const body = await req.json()
+      const updated = await Property.findByIdAndUpdate(id, body, { new: true })
+        .populate('city',         'name slug')
+        .populate('area',         'name slug')
+        .populate('propertyType', 'name slug')
+      return NextResponse.json({ success: true, data: updated, message: 'Updated!' })
+    }
+
+    // ── Full FormData update (from edit form) ──
     const formData = await req.formData()
 
     // Helper to get string or fall back to existing value

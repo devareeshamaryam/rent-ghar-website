@@ -1,9 +1,8 @@
-'use client'
+ 'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import Image from 'next/image'
 
 interface NavChild {
   label: string
@@ -121,12 +120,21 @@ const navItems: NavItem[] = [
       { label: 'All Users', href: '/admin/users' },
     ],
   },
+  // ── Suggestions ──
+  {
+    label: 'Suggestions',
+    href: '/admin/suggestions',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      </svg>
+    ),
+  },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
 
-  // Which groups are open — default open if current path is inside
   const [openGroups, setOpenGroups] = useState<string[]>(() =>
     navItems
       .filter((item) => item.children?.some((c) => pathname.startsWith(c.href)))
@@ -195,16 +203,11 @@ export default function Sidebar() {
                   {item.icon}
                 </span>
                 <span className="flex-1 text-left">{item.label}</span>
-                <span
-                  className={`transition-transform duration-200 ${
-                    isOpen ? 'rotate-180' : ''
-                  } text-gray-400`}
-                >
+                <span className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} text-gray-400`}>
                   <ChevronIcon />
                 </span>
               </button>
 
-              {/* Children */}
               {isOpen && (
                 <div className="ml-10 mr-3 mb-1">
                   {item.children.map((child) => {

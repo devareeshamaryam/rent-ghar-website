@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+ import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongoose'
 import Property from '@/models/Property'
 import { writeFile, mkdir } from 'fs/promises'
@@ -16,13 +16,14 @@ export async function GET(req: NextRequest) {
     const city   = searchParams.get('city')
     const area   = searchParams.get('area')
     const type   = searchParams.get('type')
-    const status = searchParams.get('status') || 'active'
+    const status = searchParams.get('status') // null = all, 'active' = only active
 
-    // Build filter
-    const filter: Record<string, unknown> = { status }
-    if (city)  filter.city         = city
-    if (area)  filter.area         = area
-    if (type)  filter.propertyType = type
+    // Build filter — if no status param, show all (for admin)
+    const filter: Record<string, unknown> = {}
+    if (status) filter.status = status
+    if (city)   filter.city         = city
+    if (area)   filter.area         = area
+    if (type)   filter.propertyType = type
 
     const skip  = (page - 1) * limit
     const total = await Property.countDocuments(filter)

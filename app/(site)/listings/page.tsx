@@ -1,7 +1,7 @@
  "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import PropertyCard from "../components/Propertycard"
+import PropertyCard from "@/app/components/Propertycard"
 
 // ─── Types ────────────────────────────────────────────────
 interface Property {
