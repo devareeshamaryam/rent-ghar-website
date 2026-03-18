@@ -1,18 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server'
+ import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongoose'
 import Property from '@/models/Property'
 import { writeFile, mkdir, unlink } from 'fs/promises'
 import path from 'path'
 
-type Params = { params: { id: string } }
+type Params = { params: Promise<{ id: string }> }
 
 // ─── GET /api/properties/[id] ─────────────────────────────
 export async function GET(_req: NextRequest, { params }: Params) {
   try {
     await connectDB()
+    const { id } = await params
 
     const property = await Property
-      .findById(params.id)
+      .findById(id)
       .populate('city',         'name slug')
       .populate('area',         'name slug')
       .populate('propertyType', 'name slug')
@@ -25,7 +26,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     }
 
     // Increment views
-    await Property.findByIdAndUpdate(params.id, { $inc: { views: 1 } })
+    await Property.findByIdAndUpdate(id, { $inc: { views: 1 } })
 
     return NextResponse.json({ success: true, data: property })
   } catch (error) {
@@ -40,8 +41,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
 export async function PUT(req: NextRequest, { params }: Params) {
   try {
     await connectDB()
+    const { id } = await params
 
-    const existing = await Property.findById(params.id)
+    const existing = await Property.findById(id)
     if (!existing) {
       return NextResponse.json(
         { success: false, message: 'Property not found' },
@@ -90,7 +92,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const metaDescription = str('metaDescription', existing.seo?.metaDescription)
 
     const updated = await Property.findByIdAndUpdate(
-      params.id,
+      id,
       {
         title:        str('title',        existing.title),
         slug:         str('slug',         existing.slug),
@@ -145,8 +147,9 @@ export async function PUT(req: NextRequest, { params }: Params) {
 export async function DELETE(_req: NextRequest, { params }: Params) {
   try {
     await connectDB()
+    const { id } = await params
 
-    const property = await Property.findById(params.id)
+    const property = await Property.findById(id)
     if (!property) {
       return NextResponse.json(
         { success: false, message: 'Property not found' },
@@ -154,7 +157,6 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
       )
     }
 
-    // Delete images from disk
     const filesToDelete = [property.mainPhoto, ...property.additionalPhotos].filter(Boolean)
     for (const filePath of filesToDelete) {
       try {
@@ -162,7 +164,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
       } catch { /* ignore missing files */ }
     }
 
-    await Property.findByIdAndDelete(params.id)
+    await Property.findByIdAndDelete(id)
 
     return NextResponse.json({
       success: true,

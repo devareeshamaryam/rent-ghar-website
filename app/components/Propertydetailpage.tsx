@@ -86,12 +86,105 @@ function formatSize(marla: number, kanal: number) {
   return "—"
 }
 
+// ─── Lightbox Component ───────────────────────────────────
+function Lightbox({
+  images,
+  startIndex,
+  onClose,
+}: {
+  images: string[]
+  startIndex: number
+  onClose: () => void
+}) {
+  const [current, setCurrent] = useState(startIndex)
+  const thumbsRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") setCurrent(i => (i + 1) % images.length)
+      if (e.key === "ArrowLeft")  setCurrent(i => (i === 0 ? images.length - 1 : i - 1))
+      if (e.key === "Escape")     onClose()
+    }
+    window.addEventListener("keydown", handleKey)
+    return () => window.removeEventListener("keydown", handleKey)
+  }, [images.length, onClose])
+
+  useEffect(() => {
+    if (!thumbsRef.current) return
+    const activeThumb = thumbsRef.current.children[current] as HTMLElement
+    activeThumb?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+  }, [current])
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden"
+    return () => { document.body.style.overflow = "" }
+  }, [])
+
+  return (
+    <div className="fixed inset-0 z-[9999] bg-black flex flex-col" onClick={onClose}>
+      <div className="flex items-center justify-between px-5 py-3 shrink-0" onClick={e => e.stopPropagation()}>
+        <span className="text-white text-sm font-bold opacity-70">{current + 1} / {images.length}</span>
+        <button onClick={onClose} className="text-white hover:text-[#f0c040] transition-colors p-1" aria-label="Close">
+          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div className="flex-1 flex items-center justify-center relative px-14 min-h-0" onClick={e => e.stopPropagation()}>
+        <button onClick={() => setCurrent(i => (i === 0 ? images.length - 1 : i - 1))}
+          className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/25 text-white rounded-full w-10 h-10 flex items-center justify-center transition-colors z-10">
+          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div className="relative w-full h-full">
+          <Image src={images[current]} alt={`Photo ${current + 1}`} fill className="object-contain" unoptimized priority />
+        </div>
+        <button onClick={() => setCurrent(i => (i + 1) % images.length)}
+          className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/25 text-white rounded-full w-10 h-10 flex items-center justify-center transition-colors z-10">
+          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      </div>
+      <div className="shrink-0 py-3 px-4" onClick={e => e.stopPropagation()}>
+        <div ref={thumbsRef} className="flex gap-2 overflow-x-auto pb-1 justify-center" style={{ scrollbarWidth: "none" }}>
+          {images.map((img, i) => (
+            <button key={i} onClick={() => setCurrent(i)}
+              className={`relative shrink-0 w-16 h-11 rounded-md overflow-hidden border-2 transition-all duration-200
+                ${i === current ? "border-[#f0c040] opacity-100 scale-105" : "border-transparent opacity-50 hover:opacity-80"}`}>
+              <Image src={img} alt="" fill className="object-cover" unoptimized />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Component ────────────────────────────────────────────
 export default function Propertydetailpage({ property: p }: { property: Property }) {
   const [activeTab, setActiveTab] = useState("Overview")
   const [mainImg,   setMainImg]   = useState(0)
   const [nearbyTab, setNearbyTab] = useState<"schools" | "hospitals" | "restaurants" | "shopping">("schools")
   const [saved,     setSaved]     = useState(false)
+
+  const [lightboxOpen,  setLightboxOpen]  = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
+
+  const [showStickyBar, setShowStickyBar] = useState(false)
+  const mobileCtaBtnsRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!mobileCtaBtnsRef.current) return
+      const rect = mobileCtaBtnsRef.current.getBoundingClientRect()
+      setShowStickyBar(rect.bottom < 0)
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index)
+    setLightboxOpen(true)
+  }
 
   const overviewRef  = useRef<HTMLDivElement>(null)
   const descRef      = useRef<HTMLDivElement>(null)
@@ -140,9 +233,28 @@ export default function Propertydetailpage({ property: p }: { property: Property
           height: 2.5px; background: #f0c040; border-radius: 2px;
         }
         .thumb-btn:hover img { transform: scale(1.06); }
+        .lb-thumbs::-webkit-scrollbar { display: none; }
       `}</style>
 
-      <main className="dp-font bg-[#e8f0fb] min-h-screen pb-16">
+      {lightboxOpen && (
+        <Lightbox images={allImages} startIndex={lightboxIndex} onClose={() => setLightboxOpen(false)} />
+      )}
+
+      {/* ── Mobile Sticky Footer Bar ── */}
+      <div className={`lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-[#e4edf8] px-4 py-3 flex gap-3 transition-transform duration-300 ${showStickyBar ? "translate-y-0" : "translate-y-full"}`}>
+        <a href={`tel:${p.contactNumber}`}
+          className="flex-1 flex items-center justify-center gap-2 bg-white border-2 border-[#1a2332] text-[#1a2332] font-extrabold text-sm h-12 rounded-xl transition-colors">
+          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 012 1.14 2 2 0 014 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.34 1.85.574 2.81.7A2 2 0 0122 16z"/></svg>
+          Call
+        </a>
+        <a href={`https://wa.me/${wa?.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
+          className="flex-1 flex items-center justify-center gap-2 bg-[#25D366] text-white font-extrabold text-sm h-12 rounded-xl transition-colors">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          WhatsApp
+        </a>
+      </div>
+
+      <main className="dp-font bg-[#e8f0fb] min-h-screen pb-16 lg:pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-5">
 
           {/* Breadcrumb */}
@@ -154,8 +266,52 @@ export default function Propertydetailpage({ property: p }: { property: Property
             <span className="font-semibold truncate max-w-[200px] sm:max-w-none">{p.title}</span>
           </div>
 
-          {/* Title row */}
-          <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+          {/* ════════════════════════════════════════
+              MOBILE TITLE ROW  (hidden on lg+)
+              — badges top-left, Save/Share top-right
+              — full-width title below
+          ════════════════════════════════════════ */}
+          <div className="lg:hidden mb-3">
+            {/* Row: badges + Save/Share */}
+            <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap">
+                <span className="bg-[#1a2332] text-white text-[11px] font-extrabold px-3 py-1 rounded-lg">{p.purpose}</span>
+                <span className="bg-[#f0c040] text-[#1a2332] text-[11px] font-extrabold px-3 py-1 rounded-lg">{p.propertyType?.name}</span>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button onClick={() => setSaved(s => !s)}
+                  className={`flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border-2 transition-colors
+                    ${saved ? "border-[#f0c040] bg-[#fffbea] text-[#c89000]" : "border-[#e4edf8] bg-white text-[#1a2332] hover:border-[#f0c040]"}`}>
+                  <svg width="13" height="13" fill={saved ? "#f0c040" : "none"} stroke={saved ? "#f0c040" : "currentColor"} strokeWidth="2" viewBox="0 0 24 24">
+                    <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+                  </svg>
+                  {saved ? "Saved" : "Save"}
+                </button>
+                <button className="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border-2 border-[#e4edf8] bg-white text-[#1a2332] hover:border-[#1a2332] transition-colors">
+                  <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                  </svg>
+                  Share
+                </button>
+              </div>
+            </div>
+
+            {/* Full-width title */}
+            <h1 className="text-xl font-extrabold text-[#1a2332] leading-snug">{p.title}</h1>
+            <div className="flex items-center gap-1 mt-1 text-xs text-[#1a4a8a] font-semibold">
+              <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+                <circle cx="12" cy="9" r="2.5"/>
+              </svg>
+              {p.area?.name}, {p.city?.name}
+            </div>
+          </div>
+
+          {/* ════════════════════════════════════════
+              DESKTOP TITLE ROW  (hidden on mobile)
+          ════════════════════════════════════════ */}
+          <div className="hidden lg:flex flex-wrap items-start justify-between gap-3 mb-4">
             <div className="flex-1 min-w-0">
               <div className="flex gap-2 mb-2 flex-wrap">
                 <span className="bg-[#1a2332] text-white text-[11px] font-extrabold px-3 py-1 rounded-lg">{p.purpose}</span>
@@ -195,8 +351,10 @@ export default function Propertydetailpage({ property: p }: { property: Property
             {/* ── LEFT ── */}
             <div className="flex-1 min-w-0">
 
-              {/* Price + Stats */}
-              <div className="bg-white border border-[#e4edf8] rounded-2xl p-4 mb-4">
+              {/* ════════════════════════════════════════
+                  DESKTOP: Price + Stats card (above image)
+              ════════════════════════════════════════ */}
+              <div className="hidden lg:block bg-white border border-[#e4edf8] rounded-2xl p-4 mb-4">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <p className="text-[10px] text-[#1a2332] font-semibold uppercase tracking-wide mb-0.5">Monthly Rent</p>
@@ -232,24 +390,58 @@ export default function Propertydetailpage({ property: p }: { property: Property
                 </div>
               </div>
 
-              {/* Image Gallery */}
-              <div className="bg-white border border-[#e4edf8] rounded-2xl overflow-hidden mb-4">
-                <div className="relative h-56 sm:h-96 overflow-hidden">
-                  <Image src={allImages[mainImg]} alt={p.title} fill className="object-cover" unoptimized />
+              {/* ── Image Gallery ── */}
+              <div className="bg-white border border-[#e4edf8] rounded-2xl overflow-hidden mb-0 lg:mb-4">
+
+                {/* Main image with PRICE overlay on mobile */}
+                <div
+                  className="relative h-56 sm:h-72 lg:h-96 overflow-hidden cursor-zoom-in group"
+                  onClick={() => openLightbox(mainImg)}
+                >
+                  <Image
+                    src={allImages[mainImg]}
+                    alt={p.title}
+                    fill
+                    className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                    unoptimized
+                  />
+
+                  {/* Zoom hint overlay */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white rounded-full p-2.5">
+                      <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35M11 8v6M8 11h6"/>
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* ── MOBILE: Price overlay (bottom-left of image) ── */}
+                  <div className="lg:hidden absolute bottom-8 left-0 z-10" onClick={e => e.stopPropagation()}>
+                    <div className="bg-black/55 rounded-r-xl px-4 py-2.5">
+                      <p className="text-base font-extrabold text-white leading-none">Rs. {formatPrice(p.price)}</p>
+                    </div>
+                  </div>
+
+                  {/* Left/Right arrows */}
                   {allImages.length > 1 && <>
-                    <button onClick={() => setMainImg(i => (i === 0 ? allImages.length - 1 : i - 1))}
+                    <button
+                      onClick={e => { e.stopPropagation(); setMainImg(i => (i === 0 ? allImages.length - 1 : i - 1)) }}
                       className="absolute left-3 top-1/2 -translate-y-1/2 bg-[#1a2332]/80 hover:bg-[#1a2332] text-white rounded-full w-9 h-9 flex items-center justify-center z-10 transition-colors">
                       <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
                     </button>
-                    <button onClick={() => setMainImg(i => (i === allImages.length - 1 ? 0 : i + 1))}
+                    <button
+                      onClick={e => { e.stopPropagation(); setMainImg(i => (i === allImages.length - 1 ? 0 : i + 1)) }}
                       className="absolute right-3 top-1/2 -translate-y-1/2 bg-[#1a2332]/80 hover:bg-[#1a2332] text-white rounded-full w-9 h-9 flex items-center justify-center z-10 transition-colors">
                       <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
                     </button>
                   </>}
+
                   <div className="absolute bottom-3 right-3 bg-[#1a2332]/80 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg z-10">
                     {mainImg + 1} / {allImages.length}
                   </div>
                 </div>
+
+                {/* Thumbnails */}
                 {allImages.length > 1 && (
                   <div className="flex gap-2 p-3 overflow-x-auto">
                     {allImages.map((img, i) => (
@@ -260,6 +452,59 @@ export default function Propertydetailpage({ property: p }: { property: Property
                     ))}
                   </div>
                 )}
+              </div>
+
+              {/* ════════════════════════════════════════
+                  MOBILE: Stats row (below image)
+              ════════════════════════════════════════ */}
+              <div className="lg:hidden bg-white border border-[#e4edf8] rounded-2xl px-4 py-3 mb-3 mt-3">
+                <div className="flex items-center justify-around gap-2">
+                  {p.bedrooms > 0 && (
+                    <div className="text-center">
+                      <div className="mx-auto mb-1 flex justify-center">
+                        <svg width="18" height="18" fill="none" stroke="#1a2332" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M2 20v-8a2 2 0 012-2h16a2 2 0 012 2v8M2 12V7a2 2 0 012-2h4l2 3h8a2 2 0 012 2v2"/></svg>
+                      </div>
+                      <p className="text-sm font-extrabold text-[#1a2332]">{p.bedrooms}</p>
+                      <p className="text-[10px] font-semibold text-[#1a2332]">Beds</p>
+                    </div>
+                  )}
+                  {p.bedrooms > 0 && p.bathrooms > 0 && <div className="w-px h-8 bg-[#e4edf8]" />}
+                  {p.bathrooms > 0 && (
+                    <div className="text-center">
+                      <div className="mx-auto mb-1 flex justify-center">
+                        <svg width="18" height="18" fill="none" stroke="#1a2332" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M4 12h16M4 12a2 2 0 01-2-2V6a2 2 0 012-2h4v8M4 12v6a2 2 0 002 2h12a2 2 0 002-2v-6"/></svg>
+                      </div>
+                      <p className="text-sm font-extrabold text-[#1a2332]">{p.bathrooms}</p>
+                      <p className="text-[10px] font-semibold text-[#1a2332]">Baths</p>
+                    </div>
+                  )}
+                  {p.bathrooms > 0 && <div className="w-px h-8 bg-[#e4edf8]" />}
+                  <div className="text-center">
+                    <div className="mx-auto mb-1 flex justify-center">
+                      <svg width="18" height="18" fill="none" stroke="#1a2332" strokeWidth="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                    </div>
+                    <p className="text-sm font-extrabold text-[#1a2332]">{formatSize(p.marla, p.kanal)}</p>
+                    <p className="text-[10px] font-semibold text-[#1a2332]">Area</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* ════════════════════════════════════════
+                  MOBILE: Call & WhatsApp buttons
+                  (right after stats, before sticky tabs)
+                  — ref used for sticky footer trigger
+              ════════════════════════════════════════ */}
+              <div ref={mobileCtaBtnsRef} className="lg:hidden flex gap-3 mb-4">
+                <a href={`tel:${p.contactNumber}`}
+                  className="flex-1 flex items-center justify-center gap-2 bg-white border-2 border-[#1a2332] text-[#1a2332] font-extrabold text-sm h-12 rounded-xl transition-colors hover:bg-[#1a2332] hover:text-[#f0c040]">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 012 1.14 2 2 0 014 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.34 1.85.574 2.81.7A2 2 0 0122 16z"/></svg>
+                  Call Now
+                </a>
+                <a href={`https://wa.me/${wa?.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
+                  className="flex-1 flex items-center justify-center gap-2 bg-[#25D366] text-white font-extrabold text-sm h-12 rounded-xl transition-colors hover:bg-[#1da851]">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                  WhatsApp
+                </a>
               </div>
 
               {/* Sticky Tabs */}
@@ -304,10 +549,7 @@ export default function Propertydetailpage({ property: p }: { property: Property
                 <div ref={descRef} className="bg-white border border-[#e4edf8] rounded-2xl p-4 sm:p-5">
                   <h3 className="text-sm font-extrabold text-[#1a2332] mb-3">Description</h3>
                   {p.description ? (
-                    <div
-                      className="text-sm text-[#1a2332] leading-relaxed tiptap"
-                      dangerouslySetInnerHTML={{ __html: p.description }}
-                    />
+                    <div className="text-sm text-[#1a2332] leading-relaxed tiptap" dangerouslySetInnerHTML={{ __html: p.description }} />
                   ) : (
                     <p className="text-sm text-gray-400">No description provided.</p>
                   )}
@@ -380,8 +622,8 @@ export default function Propertydetailpage({ property: p }: { property: Property
               </div>
             </div>
 
-            {/* ── RIGHT SIDEBAR ── */}
-            <div className="lg:w-72 xl:w-80 shrink-0">
+            {/* ── RIGHT SIDEBAR (desktop only) ── */}
+            <div className="hidden lg:block lg:w-72 xl:w-80 shrink-0">
               <div className="lg:sticky lg:top-20 space-y-4">
 
                 {/* Contact */}

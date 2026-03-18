@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+ import { NextRequest, NextResponse } from 'next/server'
 import connectDB from '@/lib/mongoose'
 import Area from '@/models/Area'
 
@@ -24,7 +24,12 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await connectDB()
-    const { name, city } = await req.json()
+    const body = await req.json()
+    const {
+      name, city,
+      metaTitle, metaDescription, canonicalUrl, description,
+      rentMetaTitle, rentMetaDescription, rentContent,
+    } = body
 
     if (!name?.trim()) return NextResponse.json({ success: false, message: 'Area name is required' }, { status: 400 })
     if (!city)         return NextResponse.json({ success: false, message: 'City is required' }, { status: 400 })
@@ -34,7 +39,19 @@ export async function POST(req: NextRequest) {
     const exists = await Area.findOne({ slug, city })
     if (exists) return NextResponse.json({ success: false, message: 'Area already exists in this city' }, { status: 409 })
 
-    const area = await Area.create({ name: name.trim(), slug, city })
+    const area = await Area.create({
+      name: name.trim(),
+      slug,
+      city,
+      metaTitle:       metaTitle       || '',
+      metaDescription: metaDescription || '',
+      canonicalUrl:    canonicalUrl    || '',
+      description:     description     || '',
+      rentMetaTitle:       rentMetaTitle       || '',
+      rentMetaDescription: rentMetaDescription || '',
+      rentContent:         rentContent         || '',
+    })
+
     const populated = await area.populate('city', 'name slug')
     return NextResponse.json({ success: true, data: populated }, { status: 201 })
   } catch {
