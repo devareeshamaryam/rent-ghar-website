@@ -22,6 +22,8 @@
     "@tiptap/react": "^3.20.2",
     "@tiptap/starter-kit": "^3.20.2",
     "bcryptjs": "^3.0.3",
+    "jose": "^6.2.2",
+    "jsonwebtoken": "^9.0.3",
     "leaflet": "^1.9.4",
     "mongoose": "^9.3.0",
     "next": "16.1.6",
@@ -32,6 +34,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.1",
     "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -39,6 +42,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4.2.1",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

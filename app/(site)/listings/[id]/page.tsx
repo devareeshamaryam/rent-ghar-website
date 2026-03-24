@@ -1,5 +1,5 @@
  import { notFound } from "next/navigation"
-import Propertydetailpage from "../../components/Propertydetailpage"
+import Propertydetailpage from "@/app/components/Propertydetailpage"
 
 interface Props {
   params: Promise<{ id: string }>

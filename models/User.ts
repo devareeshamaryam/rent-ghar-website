@@ -1,4 +1,6 @@
- import mongoose, { Schema, Document, Model } from 'mongoose'
+ // File: models/User.ts
+
+import mongoose, { Schema, Document, Model } from 'mongoose'
 import bcrypt from 'bcryptjs'
 
 export interface IUser extends Document {
@@ -25,12 +27,11 @@ const UserSchema = new Schema<IUser>(
   { timestamps: true }
 )
 
-// Hash password before saving
-UserSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next()
-  const salt = await bcrypt.genSalt(10)
+// Hash password before save
+UserSchema.pre('save', async function () {
+  if (!this.isModified('password')) return
+  const salt    = await bcrypt.genSalt(10)
   this.password = await bcrypt.hash(this.password, salt)
-  next()
 })
 
 // Compare password method
@@ -38,7 +39,9 @@ UserSchema.methods.comparePassword = async function (candidate: string): Promise
   return bcrypt.compare(candidate, this.password)
 }
 
+// ✅ Safe model registration — no delete, no cache issue
 const User: Model<IUser> =
-  mongoose.models.User || mongoose.model<IUser>('User', UserSchema)
+  (mongoose.models.User as Model<IUser>) ||
+  mongoose.model<IUser>('User', UserSchema)
 
 export default User
