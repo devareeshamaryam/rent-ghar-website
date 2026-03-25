@@ -80,6 +80,7 @@ const navItems: NavItem[] = [
       { label: 'All Types', href: '/admin/types' },
     ],
   },
+  // ── Packages → admin/pricing page ──
   {
     label: 'Packages',
     icon: (
@@ -90,8 +91,8 @@ const navItems: NavItem[] = [
       </svg>
     ),
     children: [
-      { label: 'Add Package', href: '/admin/packages/add' },
-      { label: 'All Packages', href: '/admin/packages' },
+      { label: 'Add Package', href: '/admin/pricing?action=add' },
+      { label: 'All Packages', href: '/admin/pricing' },
     ],
   },
   {
@@ -120,7 +121,6 @@ const navItems: NavItem[] = [
       { label: 'All Users', href: '/admin/users' },
     ],
   },
-  // ── Suggestions ──
   {
     label: 'Suggestions',
     href: '/admin/suggestions',
@@ -137,7 +137,7 @@ export default function Sidebar() {
 
   const [openGroups, setOpenGroups] = useState<string[]>(() =>
     navItems
-      .filter((item) => item.children?.some((c) => pathname.startsWith(c.href)))
+      .filter((item) => item.children?.some((c) => pathname.startsWith(c.href.split('?')[0])))
       .map((item) => item.label)
   )
 
@@ -166,7 +166,9 @@ export default function Sidebar() {
         {navItems.map((item) => {
           const isActive = item.href ? pathname === item.href : false
           const isOpen = openGroups.includes(item.label)
-          const hasActiveChild = item.children?.some((c) => pathname.startsWith(c.href))
+          const hasActiveChild = item.children?.some((c) =>
+            pathname.startsWith(c.href.split('?')[0])
+          )
 
           // Single link (no children)
           if (!item.children) {
@@ -203,7 +205,11 @@ export default function Sidebar() {
                   {item.icon}
                 </span>
                 <span className="flex-1 text-left">{item.label}</span>
-                <span className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} text-gray-400`}>
+                <span
+                  className={`transition-transform duration-200 ${
+                    isOpen ? 'rotate-180' : ''
+                  } text-gray-400`}
+                >
                   <ChevronIcon />
                 </span>
               </button>
@@ -211,7 +217,7 @@ export default function Sidebar() {
               {isOpen && (
                 <div className="ml-10 mr-3 mb-1">
                   {item.children.map((child) => {
-                    const childActive = pathname === child.href
+                    const childActive = pathname === child.href.split('?')[0]
                     return (
                       <Link
                         key={child.href}
