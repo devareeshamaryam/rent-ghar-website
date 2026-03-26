@@ -414,7 +414,7 @@ export default function AdminPricingPage() {
                   <input type="checkbox" checked={form.isPopular}
                     onChange={e => setForm({ ...form, isPopular: e.target.checked })}
                     className="rounded text-[#042C53]" />
-                  ⭐ Popular badge dikhao
+                   Popular badge dikhao
                 </label>
               </div>
             </div>

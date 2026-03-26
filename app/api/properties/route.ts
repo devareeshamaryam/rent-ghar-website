@@ -5,8 +5,6 @@ import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 
 // ─── GET /api/properties ──────────────────────────────────
-// Query params: city, area, type, status, purpose, bedrooms, bathrooms,
-//               minMarla, maxMarla, minPrice, maxPrice, page, limit
 export async function GET(req: NextRequest) {
   try {
     await connectDB()
@@ -25,21 +23,21 @@ export async function GET(req: NextRequest) {
     const maxPrice  = searchParams.get('maxPrice')
     const minMarla  = searchParams.get('minMarla')
     const maxMarla  = searchParams.get('maxMarla')
+    const slug      = searchParams.get('slug')           // ✅ slug added
 
     // Build filter
     const filter: Record<string, unknown> = {}
 
+    if (slug)     filter.slug         = slug             // ✅ slug filter
     if (status)   filter.status       = status
     if (city)     filter.city         = city
     if (area)     filter.area         = area
     if (type)     filter.propertyType = type
     if (purpose)  filter.purpose      = purpose
 
-    // Bedrooms & bathrooms (exact match)
     if (bedrooms)  filter.bedrooms  = parseInt(bedrooms)
     if (bathrooms) filter.bathrooms = parseInt(bathrooms)
 
-    // Price range
     if (minPrice || maxPrice) {
       const priceFilter: Record<string, number> = {}
       if (minPrice) priceFilter.$gte = parseFloat(minPrice)
@@ -47,7 +45,6 @@ export async function GET(req: NextRequest) {
       filter.price = priceFilter
     }
 
-    // Marla range
     if (minMarla || maxMarla) {
       const marlaFilter: Record<string, number> = {}
       if (minMarla) marlaFilter.$gte = parseFloat(minMarla)
@@ -87,14 +84,12 @@ export async function GET(req: NextRequest) {
 }
 
 // ─── POST /api/properties ─────────────────────────────────
-// Accepts multipart/form-data (images + JSON fields)
 export async function POST(req: NextRequest) {
   try {
     await connectDB()
 
     const formData = await req.formData()
 
-    // ── Required fields ──
     const title        = formData.get('title')        as string
     const propertyType = formData.get('propertyType') as string
     const city         = formData.get('city')         as string
@@ -108,11 +103,9 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // ── Slug ──
     const slug = (formData.get('slug') as string) ||
       title.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
 
-    // Check slug duplicate
     const slugExists = await Property.findOne({ slug })
     if (slugExists) {
       return NextResponse.json(
@@ -121,7 +114,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // ── Parse optional fields ──
     const address      = formData.get('address')      as string || ''
     const lat          = parseFloat(formData.get('lat') as string || '0')
     const lng          = parseFloat(formData.get('lng') as string || '0')
@@ -136,11 +128,9 @@ export async function POST(req: NextRequest) {
     const metaTitle      = formData.get('metaTitle')      as string || title
     const metaDescription = formData.get('metaDescription') as string || ''
 
-    // Parse JSON fields
     const features     = JSON.parse(formData.get('features')     as string || '[]')
     const nearbyPlaces = JSON.parse(formData.get('nearbyPlaces') as string || '{}')
 
-    // ── Save images to /public/uploads/ ──
     const uploadDir = path.join(process.cwd(), 'public', 'uploads')
     await mkdir(uploadDir, { recursive: true })
 
@@ -153,14 +143,12 @@ export async function POST(req: NextRequest) {
       return `/uploads/${filename}`
     }
 
-    // Main photo
     let mainPhotoUrl = ''
     const mainPhotoFile = formData.get('mainPhoto') as File | null
     if (mainPhotoFile && mainPhotoFile.size > 0) {
       mainPhotoUrl = await saveFile(mainPhotoFile)
     }
 
-    // Additional photos
     const additionalPhotoUrls: string[] = []
     const additionalFiles = formData.getAll('additionalPhotos') as File[]
     for (const file of additionalFiles) {
@@ -169,7 +157,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // ── Create property ──
     const property = await Property.create({
       title,
       slug,
@@ -201,7 +188,6 @@ export async function POST(req: NextRequest) {
       status: 'active',
     })
 
-    // Populate for response
     const populated = await property.populate([
       { path: 'city',         select: 'name slug' },
       { path: 'area',         select: 'name slug' },

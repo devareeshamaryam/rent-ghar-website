@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import Link from "next/link"
 
-// ─── Types ────────────────────────────────────────────────
 interface NearbyItem   { name: string; time: string }
 interface PopulatedRef { _id: string; name: string; slug: string }
 
@@ -43,7 +42,6 @@ export interface Property {
   createdAt:       string
 }
 
-// ─── Feature map ──────────────────────────────────────────
 const FEATURE_MAP: Record<string, { label: string; icon: JSX.Element }> = {
   tv_lounge:       { label: "TV Lounge",       icon: <svg width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> },
   kitchen:         { label: "Kitchen",          icon: <svg width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg> },
@@ -73,7 +71,6 @@ const NEARBY_TABS = [
 
 const TABS = ["Overview", "Description", "Features & Amenities", "Location"]
 
-// ─── Helpers ──────────────────────────────────────────────
 function formatPrice(n: number) {
   if (n >= 10000000) return `${(n / 10000000).toFixed(1)} Cr`
   if (n >= 100000)   return `${(n / 100000).toFixed(1)} Lac`
@@ -86,16 +83,7 @@ function formatSize(marla: number, kanal: number) {
   return "—"
 }
 
-// ─── Lightbox Component ───────────────────────────────────
-function Lightbox({
-  images,
-  startIndex,
-  onClose,
-}: {
-  images: string[]
-  startIndex: number
-  onClose: () => void
-}) {
+function Lightbox({ images, startIndex, onClose }: { images: string[]; startIndex: number; onClose: () => void }) {
   const [current, setCurrent] = useState(startIndex)
   const thumbsRef = useRef<HTMLDivElement>(null)
 
@@ -124,10 +112,8 @@ function Lightbox({
     <div className="fixed inset-0 z-[9999] bg-black flex flex-col" onClick={onClose}>
       <div className="flex items-center justify-between px-5 py-3 shrink-0" onClick={e => e.stopPropagation()}>
         <span className="text-white text-sm font-bold opacity-70">{current + 1} / {images.length}</span>
-        <button onClick={onClose} className="text-white hover:text-[#f0c040] transition-colors p-1" aria-label="Close">
-          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path d="M18 6L6 18M6 6l12 12"/>
-          </svg>
+        <button onClick={onClose} className="text-white hover:text-[#f0c040] transition-colors p-1">
+          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
       <div className="flex-1 flex items-center justify-center relative px-14 min-h-0" onClick={e => e.stopPropagation()}>
@@ -158,16 +144,20 @@ function Lightbox({
   )
 }
 
-// ─── Component ────────────────────────────────────────────
-export default function Propertydetailpage({ property: p }: { property: Property }) {
+// ── ✅ isFeatured prop add hua ────────────────────────────────
+export default function Propertydetailpage({
+  property: p,
+  isFeatured = false,   // ✅ NEW
+}: {
+  property:    Property
+  isFeatured?: boolean  // ✅ NEW
+}) {
   const [activeTab, setActiveTab] = useState("Overview")
   const [mainImg,   setMainImg]   = useState(0)
   const [nearbyTab, setNearbyTab] = useState<"schools" | "hospitals" | "restaurants" | "shopping">("schools")
   const [saved,     setSaved]     = useState(false)
-
   const [lightboxOpen,  setLightboxOpen]  = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
-
   const [showStickyBar, setShowStickyBar] = useState(false)
   const mobileCtaBtnsRef = useRef<HTMLDivElement>(null)
 
@@ -181,15 +171,12 @@ export default function Propertydetailpage({ property: p }: { property: Property
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  const openLightbox = (index: number) => {
-    setLightboxIndex(index)
-    setLightboxOpen(true)
-  }
+  const openLightbox = (index: number) => { setLightboxIndex(index); setLightboxOpen(true) }
 
-  const overviewRef  = useRef<HTMLDivElement>(null)
-  const descRef      = useRef<HTMLDivElement>(null)
-  const featuresRef  = useRef<HTMLDivElement>(null)
-  const locationRef  = useRef<HTMLDivElement>(null)
+  const overviewRef = useRef<HTMLDivElement>(null)
+  const descRef     = useRef<HTMLDivElement>(null)
+  const featuresRef = useRef<HTMLDivElement>(null)
+  const locationRef = useRef<HTMLDivElement>(null)
 
   const sectionRefs = [
     { tab: "Overview",             ref: overviewRef  },
@@ -222,6 +209,16 @@ export default function Propertydetailpage({ property: p }: { property: Property
 
   const wa = p.whatsappNumber || p.contactNumber
 
+  // ── ✅ Featured Badge component (reuse karte hain dono jagah) ──
+  const FeaturedBadge = () => (
+    <span className="inline-flex items-center gap-1 text-[11px] font-extrabold bg-[#f0c040] text-[#1a2332] px-2.5 py-1 rounded-lg">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+      </svg>
+      Featured
+    </span>
+  )
+
   return (
     <>
       <style>{`
@@ -234,13 +231,21 @@ export default function Propertydetailpage({ property: p }: { property: Property
         }
         .thumb-btn:hover img { transform: scale(1.06); }
         .lb-thumbs::-webkit-scrollbar { display: none; }
+
+        /* ✅ Featured ribbon animation */
+        @keyframes featured-shine {
+          0%   { opacity: 0.85; }
+          50%  { opacity: 1; }
+          100% { opacity: 0.85; }
+        }
+        .featured-ribbon { animation: featured-shine 2.5s ease-in-out infinite; }
       `}</style>
 
       {lightboxOpen && (
         <Lightbox images={allImages} startIndex={lightboxIndex} onClose={() => setLightboxOpen(false)} />
       )}
 
-      {/* ── Mobile Sticky Footer Bar ── */}
+      {/* Mobile Sticky Footer */}
       <div className={`lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-[#e4edf8] px-4 py-3 flex gap-3 transition-transform duration-300 ${showStickyBar ? "translate-y-0" : "translate-y-full"}`}>
         <a href={`tel:${p.contactNumber}`}
           className="flex-1 flex items-center justify-center gap-2 bg-white border-2 border-[#1a2332] text-[#1a2332] font-extrabold text-sm h-12 rounded-xl transition-colors">
@@ -266,17 +271,16 @@ export default function Propertydetailpage({ property: p }: { property: Property
             <span className="font-semibold truncate max-w-[200px] sm:max-w-none">{p.title}</span>
           </div>
 
-          {/* ════════════════════════════════════════
-              MOBILE TITLE ROW  (hidden on lg+)
-              — badges top-left, Save/Share top-right
-              — full-width title below
-          ════════════════════════════════════════ */}
+          {/* ══════════════════════════════════════
+              MOBILE TITLE ROW
+          ══════════════════════════════════════ */}
           <div className="lg:hidden mb-3">
-            {/* Row: badges + Save/Share */}
             <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap items-center">
                 <span className="bg-[#1a2332] text-white text-[11px] font-extrabold px-3 py-1 rounded-lg">{p.purpose}</span>
                 <span className="bg-[#f0c040] text-[#1a2332] text-[11px] font-extrabold px-3 py-1 rounded-lg">{p.propertyType?.name}</span>
+                {/* ✅ Featured badge — mobile badges row */}
+                {isFeatured && <FeaturedBadge />}
               </div>
               <div className="flex gap-2 shrink-0">
                 <button onClick={() => setSaved(s => !s)}
@@ -296,8 +300,6 @@ export default function Propertydetailpage({ property: p }: { property: Property
                 </button>
               </div>
             </div>
-
-            {/* Full-width title */}
             <h1 className="text-xl font-extrabold text-[#1a2332] leading-snug">{p.title}</h1>
             <div className="flex items-center gap-1 mt-1 text-xs text-[#1a4a8a] font-semibold">
               <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
@@ -308,14 +310,16 @@ export default function Propertydetailpage({ property: p }: { property: Property
             </div>
           </div>
 
-          {/* ════════════════════════════════════════
-              DESKTOP TITLE ROW  (hidden on mobile)
-          ════════════════════════════════════════ */}
+          {/* ══════════════════════════════════════
+              DESKTOP TITLE ROW
+          ══════════════════════════════════════ */}
           <div className="hidden lg:flex flex-wrap items-start justify-between gap-3 mb-4">
             <div className="flex-1 min-w-0">
-              <div className="flex gap-2 mb-2 flex-wrap">
+              <div className="flex gap-2 mb-2 flex-wrap items-center">
                 <span className="bg-[#1a2332] text-white text-[11px] font-extrabold px-3 py-1 rounded-lg">{p.purpose}</span>
                 <span className="bg-[#f0c040] text-[#1a2332] text-[11px] font-extrabold px-3 py-1 rounded-lg">{p.propertyType?.name}</span>
+                {/* ✅ Featured badge — desktop badges row */}
+                {isFeatured && <FeaturedBadge />}
               </div>
               <h1 className="text-xl sm:text-2xl font-extrabold text-[#1a2332] leading-snug">{p.title}</h1>
               <div className="flex items-center gap-1 mt-1.5 text-xs text-[#1a4a8a] font-semibold">
@@ -345,15 +349,10 @@ export default function Propertydetailpage({ property: p }: { property: Property
             </div>
           </div>
 
-          {/* Two column layout */}
           <div className="flex flex-col lg:flex-row gap-5">
-
-            {/* ── LEFT ── */}
             <div className="flex-1 min-w-0">
 
-              {/* ════════════════════════════════════════
-                  DESKTOP: Price + Stats card (above image)
-              ════════════════════════════════════════ */}
+              {/* Desktop Price + Stats */}
               <div className="hidden lg:block bg-white border border-[#e4edf8] rounded-2xl p-4 mb-4">
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
@@ -390,10 +389,8 @@ export default function Propertydetailpage({ property: p }: { property: Property
                 </div>
               </div>
 
-              {/* ── Image Gallery ── */}
+              {/* Image Gallery */}
               <div className="bg-white border border-[#e4edf8] rounded-2xl overflow-hidden mb-0 lg:mb-4">
-
-                {/* Main image with PRICE overlay on mobile */}
                 <div
                   className="relative h-56 sm:h-72 lg:h-96 overflow-hidden cursor-zoom-in group"
                   onClick={() => openLightbox(mainImg)}
@@ -406,7 +403,27 @@ export default function Propertydetailpage({ property: p }: { property: Property
                     unoptimized
                   />
 
-                  {/* Zoom hint overlay */}
+                  {/* ✅ Featured ribbon on image — top left */}
+                  {isFeatured && (
+                    <div
+                      className="featured-ribbon absolute top-3 left-0 z-20 pointer-events-none"
+                      style={{
+                        background:   'linear-gradient(135deg, #1a2332, #2c3e5a)',
+                        color:        '#f0c040',
+                        fontSize:     '9px',
+                        fontWeight:   900,
+                        letterSpacing:'0.12em',
+                        padding:      '5px 18px 5px 10px',
+                        textTransform:'uppercase',
+                        clipPath:     'polygon(0 0, 88% 0, 100% 50%, 88% 100%, 0 100%)',
+                        boxShadow:    '2px 2px 10px rgba(0,0,0,0.3)',
+                      }}
+                    >
+                      ⭐ Featured
+                    </div>
+                  )}
+
+                  {/* Zoom hint */}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white rounded-full p-2.5">
                       <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -415,22 +432,20 @@ export default function Propertydetailpage({ property: p }: { property: Property
                     </div>
                   </div>
 
-                  {/* ── MOBILE: Price overlay (bottom-left of image) ── */}
+                  {/* Mobile price overlay */}
                   <div className="lg:hidden absolute bottom-8 left-0 z-10" onClick={e => e.stopPropagation()}>
                     <div className="bg-black/55 rounded-r-xl px-4 py-2.5">
                       <p className="text-base font-extrabold text-white leading-none">Rs. {formatPrice(p.price)}</p>
                     </div>
                   </div>
 
-                  {/* Left/Right arrows */}
+                  {/* Arrows */}
                   {allImages.length > 1 && <>
-                    <button
-                      onClick={e => { e.stopPropagation(); setMainImg(i => (i === 0 ? allImages.length - 1 : i - 1)) }}
+                    <button onClick={e => { e.stopPropagation(); setMainImg(i => (i === 0 ? allImages.length - 1 : i - 1)) }}
                       className="absolute left-3 top-1/2 -translate-y-1/2 bg-[#1a2332]/80 hover:bg-[#1a2332] text-white rounded-full w-9 h-9 flex items-center justify-center z-10 transition-colors">
                       <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
                     </button>
-                    <button
-                      onClick={e => { e.stopPropagation(); setMainImg(i => (i === allImages.length - 1 ? 0 : i + 1)) }}
+                    <button onClick={e => { e.stopPropagation(); setMainImg(i => (i === allImages.length - 1 ? 0 : i + 1)) }}
                       className="absolute right-3 top-1/2 -translate-y-1/2 bg-[#1a2332]/80 hover:bg-[#1a2332] text-white rounded-full w-9 h-9 flex items-center justify-center z-10 transition-colors">
                       <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
                     </button>
@@ -441,7 +456,6 @@ export default function Propertydetailpage({ property: p }: { property: Property
                   </div>
                 </div>
 
-                {/* Thumbnails */}
                 {allImages.length > 1 && (
                   <div className="flex gap-2 p-3 overflow-x-auto">
                     {allImages.map((img, i) => (
@@ -454,9 +468,7 @@ export default function Propertydetailpage({ property: p }: { property: Property
                 )}
               </div>
 
-              {/* ════════════════════════════════════════
-                  MOBILE: Stats row (below image)
-              ════════════════════════════════════════ */}
+              {/* Mobile Stats */}
               <div className="lg:hidden bg-white border border-[#e4edf8] rounded-2xl px-4 py-3 mb-3 mt-3">
                 <div className="flex items-center justify-around gap-2">
                   {p.bedrooms > 0 && (
@@ -489,11 +501,7 @@ export default function Propertydetailpage({ property: p }: { property: Property
                 </div>
               </div>
 
-              {/* ════════════════════════════════════════
-                  MOBILE: Call & WhatsApp buttons
-                  (right after stats, before sticky tabs)
-                  — ref used for sticky footer trigger
-              ════════════════════════════════════════ */}
+              {/* Mobile CTA buttons */}
               <div ref={mobileCtaBtnsRef} className="lg:hidden flex gap-3 mb-4">
                 <a href={`tel:${p.contactNumber}`}
                   className="flex-1 flex items-center justify-center gap-2 bg-white border-2 border-[#1a2332] text-[#1a2332] font-extrabold text-sm h-12 rounded-xl transition-colors hover:bg-[#1a2332] hover:text-[#f0c040]">
@@ -587,7 +595,6 @@ export default function Propertydetailpage({ property: p }: { property: Property
                     <p className="text-sm font-extrabold text-[#1a2332]">{p.area?.name}, {p.city?.name}</p>
                     <p className="text-xs text-[#1a2332]/60 mt-0.5">{p.address}</p>
                   </div>
-
                   <h3 className="text-sm font-extrabold text-[#1a2332] mb-3">Nearby Places</h3>
                   <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
                     {NEARBY_TABS.map(n => (
@@ -596,8 +603,7 @@ export default function Propertydetailpage({ property: p }: { property: Property
                           ${nearbyTab === n.key ? "bg-[#1a2332] text-white border-[#1a2332]" : "bg-white text-[#1a2332] border-[#dce8f8] hover:border-[#1a2332]"}`}>
                         {n.label}
                         {(p.nearbyPlaces?.[n.key]?.length ?? 0) > 0 && (
-                          <span className={`ml-1 text-[9px] px-1.5 py-0.5 rounded-full font-bold
-                            ${nearbyTab === n.key ? "bg-white text-[#1a2332]" : "bg-[#1a2332] text-white"}`}>
+                          <span className={`ml-1 text-[9px] px-1.5 py-0.5 rounded-full font-bold ${nearbyTab === n.key ? "bg-white text-[#1a2332]" : "bg-[#1a2332] text-white"}`}>
                             {p.nearbyPlaces[n.key].length}
                           </span>
                         )}
@@ -622,11 +628,9 @@ export default function Propertydetailpage({ property: p }: { property: Property
               </div>
             </div>
 
-            {/* ── RIGHT SIDEBAR (desktop only) ── */}
+            {/* RIGHT SIDEBAR */}
             <div className="hidden lg:block lg:w-72 xl:w-80 shrink-0">
               <div className="lg:sticky lg:top-20 space-y-4">
-
-                {/* Contact */}
                 <div className="bg-white border border-[#e4edf8] rounded-2xl p-4">
                   <h3 className="text-sm font-extrabold text-[#1a2332] mb-3">Contact Agent</h3>
                   <a href={`https://wa.me/${wa?.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer"
@@ -644,8 +648,6 @@ export default function Propertydetailpage({ property: p }: { property: Property
                     Send Email
                   </button>
                 </div>
-
-                {/* Property Details */}
                 <div className="bg-white border border-[#e4edf8] rounded-2xl p-4">
                   <h3 className="text-sm font-extrabold text-[#1a2332] mb-3">Property Details</h3>
                   <div className="space-y-2">
@@ -664,7 +666,6 @@ export default function Propertydetailpage({ property: p }: { property: Property
                     ))}
                   </div>
                 </div>
-
               </div>
             </div>
 

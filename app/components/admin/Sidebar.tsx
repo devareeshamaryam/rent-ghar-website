@@ -48,6 +48,19 @@ const navItems: NavItem[] = [
       { label: 'All Properties', href: '/admin/properties' },
     ],
   },
+  // ✅ Featured Properties — Admin only featured listing management
+  {
+    label: 'Featured',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+      </svg>
+    ),
+    children: [
+      { label: 'Add Featured', href: '/admin/featured/add' },
+      { label: 'All Featured', href: '/admin/featured' },
+    ],
+  },
   {
     label: 'Locations',
     icon: (
@@ -104,7 +117,6 @@ const navItems: NavItem[] = [
     ),
     children: [
       { label: 'All Subscriptions', href: '/admin/subscriptions' },
-      // ✅ Naya link add kiya
       { label: 'Subscription Requests', href: '/admin/subscription-requests' },
     ],
   },
