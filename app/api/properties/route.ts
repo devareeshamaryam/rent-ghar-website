@@ -5,25 +5,55 @@ import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 
 // ─── GET /api/properties ──────────────────────────────────
-// Query params: city, area, type, status, page, limit
+// Query params: city, area, type, status, purpose, bedrooms, bathrooms,
+//               minMarla, maxMarla, minPrice, maxPrice, page, limit
 export async function GET(req: NextRequest) {
   try {
     await connectDB()
 
     const { searchParams } = new URL(req.url)
-    const page   = parseInt(searchParams.get('page')  || '1')
-    const limit  = parseInt(searchParams.get('limit') || '10')
-    const city   = searchParams.get('city')
-    const area   = searchParams.get('area')
-    const type   = searchParams.get('type')
-    const status = searchParams.get('status') // null = all, 'active' = only active
+    const page      = parseInt(searchParams.get('page')  || '1')
+    const limit     = parseInt(searchParams.get('limit') || '10')
+    const city      = searchParams.get('city')
+    const area      = searchParams.get('area')
+    const type      = searchParams.get('type')
+    const status    = searchParams.get('status')
+    const purpose   = searchParams.get('purpose')
+    const bedrooms  = searchParams.get('bedrooms')
+    const bathrooms = searchParams.get('bathrooms')
+    const minPrice  = searchParams.get('minPrice')
+    const maxPrice  = searchParams.get('maxPrice')
+    const minMarla  = searchParams.get('minMarla')
+    const maxMarla  = searchParams.get('maxMarla')
 
-    // Build filter — if no status param, show all (for admin)
+    // Build filter
     const filter: Record<string, unknown> = {}
-    if (status) filter.status = status
-    if (city)   filter.city         = city
-    if (area)   filter.area         = area
-    if (type)   filter.propertyType = type
+
+    if (status)   filter.status       = status
+    if (city)     filter.city         = city
+    if (area)     filter.area         = area
+    if (type)     filter.propertyType = type
+    if (purpose)  filter.purpose      = purpose
+
+    // Bedrooms & bathrooms (exact match)
+    if (bedrooms)  filter.bedrooms  = parseInt(bedrooms)
+    if (bathrooms) filter.bathrooms = parseInt(bathrooms)
+
+    // Price range
+    if (minPrice || maxPrice) {
+      const priceFilter: Record<string, number> = {}
+      if (minPrice) priceFilter.$gte = parseFloat(minPrice)
+      if (maxPrice) priceFilter.$lte = parseFloat(maxPrice)
+      filter.price = priceFilter
+    }
+
+    // Marla range
+    if (minMarla || maxMarla) {
+      const marlaFilter: Record<string, number> = {}
+      if (minMarla) marlaFilter.$gte = parseFloat(minMarla)
+      if (maxMarla) marlaFilter.$lte = parseFloat(maxMarla)
+      filter.marla = marlaFilter
+    }
 
     const skip  = (page - 1) * limit
     const total = await Property.countDocuments(filter)

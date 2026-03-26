@@ -80,7 +80,6 @@ const navItems: NavItem[] = [
       { label: 'All Types', href: '/admin/types' },
     ],
   },
-  // ── Packages → admin/pricing page ──
   {
     label: 'Packages',
     icon: (
@@ -105,6 +104,8 @@ const navItems: NavItem[] = [
     ),
     children: [
       { label: 'All Subscriptions', href: '/admin/subscriptions' },
+      // ✅ Naya link add kiya
+      { label: 'Subscription Requests', href: '/admin/subscription-requests' },
     ],
   },
   {
@@ -170,7 +171,6 @@ export default function Sidebar() {
             pathname.startsWith(c.href.split('?')[0])
           )
 
-          // Single link (no children)
           if (!item.children) {
             return (
               <Link
@@ -190,7 +190,6 @@ export default function Sidebar() {
             )
           }
 
-          // Collapsible group
           return (
             <div key={item.label}>
               <button

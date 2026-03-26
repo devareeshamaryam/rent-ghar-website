@@ -1,288 +1,141 @@
- "use client"
+ // app/(site)/listings/page.tsx
+// ─────────────────────────────────────────────────────────────
+// Server Component — exports generateMetadata for dynamic SEO.
+// The actual filter UI lives in ListingsClient (client component).
+// ─────────────────────────────────────────────────────────────
 
-import { useState, useEffect, useCallback } from "react"
-import PropertyCard from "@/app/components/Propertycard"
+import { Metadata } from 'next'
+import connectDB from '@/lib/mongoose'
+import City from '@/models/City'
+import Area from '@/models/Area'
+import ListingsClient from './ListingsClient'
 
-// ─── Types ────────────────────────────────────────────────
-interface Property {
-  _id:             string
-  title:           string
-  price:           number
-  bedrooms:        number
-  bathrooms:       number
-  marla:           number
-  kanal:           number
-  mainPhoto:       string
-  additionalPhotos: string[]
-  purpose:         string
-  propertyType:    { _id: string; name: string }
-  city:            { _id: string; name: string }
-  area:            { _id: string; name: string }
-  contactNumber:   string
-  whatsappNumber:  string
-  createdAt:       string
+// ── Types ─────────────────────────────────────────────────────
+interface PageProps {
+  searchParams: { [key: string]: string | string[] | undefined }
 }
 
-interface RefItem { _id: string; name: string }
-
-// ─── Helpers ──────────────────────────────────────────────
-function formatPrice(n: number) {
-  if (n >= 10000000) return `${(n / 10000000).toFixed(1)} Cr`
-  if (n >= 100000)   return `${(n / 100000).toFixed(1)} Lac`
-  return n.toLocaleString()
+// ── Helpers ───────────────────────────────────────────────────
+function sp(val: string | string[] | undefined): string {
+  return Array.isArray(val) ? val[0] : val ?? ''
 }
 
-function formatSize(marla: number, kanal: number) {
-  if (kanal > 0) return `${kanal} Kanal`
-  if (marla > 0) return `${marla} Marla`
-  return "—"
-}
+// ── generateMetadata ──────────────────────────────────────────
+export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
+  const citySlug = sp(searchParams.city)
+  const areaSlug = sp(searchParams.area)
+  const purpose  = sp(searchParams.purpose) || 'rent'   // 'rent' | 'buy'
 
-function timeAgo(dateStr: string) {
-  const diff  = Date.now() - new Date(dateStr).getTime()
-  const hours = Math.floor(diff / 3600000)
-  const days  = Math.floor(hours / 24)
-  if (days > 0)  return `${days} day${days > 1 ? "s" : ""} ago`
-  if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} ago`
-  return "Today"
-}
+  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://rentghars.com'
 
-const LIMIT = 9
-
-export default function ListingsPage() {
-  const [properties, setProperties] = useState<Property[]>([])
-  const [cities,     setCities]     = useState<RefItem[]>([])
-  const [areas,      setAreas]      = useState<RefItem[]>([])
-  const [types,      setTypes]      = useState<RefItem[]>([])
-  const [loading,    setLoading]    = useState(true)
-  const [total,      setTotal]      = useState(0)
-  const [page,       setPage]       = useState(1)
-
-  // Filters
-  const [cityId,  setCityId]  = useState("")
-  const [areaId,  setAreaId]  = useState("")
-  const [typeId,  setTypeId]  = useState("")
-  const [minP,    setMinP]    = useState("")
-  const [maxP,    setMaxP]    = useState("")
-
-  // Load dropdowns once
-  useEffect(() => {
-    fetch("/api/cities").then(r => r.json()).then(d => setCities(d.data || []))
-    fetch("/api/types").then(r => r.json()).then(d => setTypes(d.data || []))
-  }, [])
-
-  // Load areas when city changes
-  useEffect(() => {
-    if (!cityId) { setAreas([]); setAreaId(""); return }
-    fetch(`/api/areas?city=${cityId}`)
-      .then(r => r.json())
-      .then(d => setAreas(d.data || []))
-    setAreaId("")
-  }, [cityId])
-
-  // Fetch properties
-  const fetchProperties = useCallback(async () => {
-    setLoading(true)
-    try {
-      const q = new URLSearchParams({ page: String(page), limit: String(LIMIT), status: "active" })
-      if (cityId) q.set("city",     cityId)
-      if (areaId) q.set("area",     areaId)
-      if (typeId) q.set("type",     typeId)
-      if (minP)   q.set("minPrice", minP)
-      if (maxP)   q.set("maxPrice", maxP)
-      const res  = await fetch(`/api/properties?${q}`)
-      const data = await res.json()
-      setProperties(data.data || [])
-      setTotal(data.pagination?.total || 0)
-    } catch {
-      setProperties([])
-    } finally {
-      setLoading(false)
+  // ── Default (no filters) ──
+  if (!citySlug) {
+    return {
+      title:       'Properties for Rent & Sale in Pakistan | RentGhars',
+      description: 'Find the best rental and sale properties across Pakistan. Browse houses, apartments, flats and more on RentGhars.',
+      alternates:  { canonical: `${BASE_URL}/listings` },
+      openGraph: {
+        title:       'Properties for Rent & Sale in Pakistan | RentGhars',
+        description: 'Find the best rental and sale properties across Pakistan.',
+        url:         `${BASE_URL}/listings`,
+        type:        'website',
+      },
     }
-  }, [cityId, areaId, typeId, minP, maxP, page])
-
-  useEffect(() => { fetchProperties() }, [fetchProperties])
-
-  const clearAll = () => {
-    setCityId(""); setAreaId(""); setTypeId("")
-    setMinP(""); setMaxP(""); setPage(1)
   }
 
-  // Active filter chips
-  const chips = [
-    cityId && { label: cities.find(c => c._id === cityId)?.name || "", clear: () => { setCityId(""); setPage(1) } },
-    areaId && { label: areas.find(a => a._id === areaId)?.name  || "", clear: () => { setAreaId(""); setPage(1) } },
-    typeId && { label: types.find(t => t._id === typeId)?.name  || "", clear: () => { setTypeId(""); setPage(1) } },
-    (minP || maxP) && { label: `PKR ${minP || "0"} – ${maxP || "∞"}`, clear: () => { setMinP(""); setMaxP(""); setPage(1) } },
-  ].filter(Boolean) as { label: string; clear: () => void }[]
+  try {
+    await connectDB()
 
-  const totalPages = Math.ceil(total / LIMIT)
+    const city = await City.findOne({ slug: citySlug, isActive: true }).lean()
 
-  const sel = "bg-white border border-[#e8d98a] text-[#1a2332] text-xs h-8 rounded-lg outline-none cursor-pointer appearance-none px-2.5 pr-7 hover:border-[#1a2332] focus:border-[#1a2332] transition-colors listing-font"
+    // ── City + Area ──
+    if (areaSlug && city) {
+      const area = await Area.findOne({ slug: areaSlug, city: (city as {_id: unknown})._id, isActive: true }).lean() as {
+        name: string
+        metaTitle: string
+        metaDescription: string
+        canonicalUrl: string
+        rentMetaTitle: string
+        rentMetaDescription: string
+      } | null
 
-  return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
-        .listing-font { font-family: 'Nunito', sans-serif; }
-        .sel-wrap { position: relative; display: inline-flex; }
-        .sel-wrap::after {
-          content: ''; position: absolute; right: 9px; top: 50%;
-          transform: translateY(-50%);
-          border-left: 4px solid transparent;
-          border-right: 4px solid transparent;
-          border-top: 5px solid #1a2332;
-          pointer-events: none;
+      if (area) {
+        const title = purpose === 'rent'
+          ? (area.rentMetaTitle || `Properties for Rent in ${area.name}, ${(city as {name: string}).name} | RentGhars`)
+          : (area.metaTitle     || `Properties in ${area.name}, ${(city as {name: string}).name} | RentGhars`)
+
+        const desc = purpose === 'rent'
+          ? (area.rentMetaDescription || area.metaDescription || `Browse ${purpose} properties in ${area.name}, ${(city as {name: string}).name}.`)
+          : (area.metaDescription || `Browse properties in ${area.name}, ${(city as {name: string}).name}.`)
+
+        const canonical = area.canonicalUrl || `${BASE_URL}/listings?city=${citySlug}&area=${areaSlug}&purpose=${purpose}`
+
+        return {
+          title,
+          description: desc,
+          alternates:  { canonical },
+          openGraph:   { title, description: desc, url: canonical, type: 'website' },
         }
-      `}</style>
+      }
+    }
 
-      <main className="listing-font bg-[#f6f9ff] min-h-screen">
+    // ── City only ──
+    if (city) {
+      const c = city as {
+        name: string
+        metaTitle: string
+        metaDescription: string
+        canonicalUrl: string
+        rentMetaTitle: string
+        rentMetaDescription: string
+        buyMetaTitle: string
+        buyMetaDescription: string
+        thumbnail: string
+      }
 
-        {/* ── Sticky filter bar ── */}
-        <div className="border-b border-[#e8d98a] sticky top-0 z-30 shadow-sm" style={{ background: "#fffde8" }}>
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5">
-            <div className="flex flex-wrap gap-2 items-center">
+      const title = purpose === 'rent'
+        ? (c.rentMetaTitle || `Properties for Rent in ${c.name} | RentGhars`)
+        : (c.buyMetaTitle  || `Properties for Sale in ${c.name} | RentGhars`)
 
-              <span className="bg-[#1a2332] text-white text-[11px] font-extrabold px-3.5 h-8 rounded-lg flex items-center shrink-0">
-                For Rent
-              </span>
+      const desc = purpose === 'rent'
+        ? (c.rentMetaDescription || c.metaDescription || `Browse rental properties in ${c.name}.`)
+        : (c.buyMetaDescription  || c.metaDescription || `Browse properties for sale in ${c.name}.`)
 
-              {/* City */}
-              <div className="sel-wrap">
-                <select value={cityId} onChange={e => { setCityId(e.target.value); setPage(1) }} className={sel}>
-                  <option value="">All Cities</option>
-                  {cities.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-                </select>
-              </div>
+      const canonical = c.canonicalUrl || `${BASE_URL}/listings?city=${citySlug}&purpose=${purpose}`
 
-              {/* Area */}
-              <div className="sel-wrap">
-                <select value={areaId} onChange={e => { setAreaId(e.target.value); setPage(1) }} className={sel} disabled={!cityId}>
-                  <option value="">{cityId ? "All Areas" : "Select city first"}</option>
-                  {areas.map(a => <option key={a._id} value={a._id}>{a.name}</option>)}
-                </select>
-              </div>
+      return {
+        title,
+        description: desc,
+        alternates:  { canonical },
+        openGraph: {
+          title,
+          description: desc,
+          url:         canonical,
+          type:        'website',
+          images:      c.thumbnail ? [{ url: c.thumbnail }] : [],
+        },
+      }
+    }
+  } catch (err) {
+    console.error('generateMetadata error:', err)
+  }
 
-              {/* Type */}
-              <div className="sel-wrap">
-                <select value={typeId} onChange={e => { setTypeId(e.target.value); setPage(1) }} className={sel}>
-                  <option value="">All Types</option>
-                  {types.map(t => <option key={t._id} value={t._id}>{t.name}</option>)}
-                </select>
-              </div>
+  // Fallback
+  return {
+    title:       'Property Listings | RentGhars',
+    description: 'Browse property listings on RentGhars.',
+    alternates:  { canonical: `${BASE_URL}/listings` },
+  }
+}
 
-              <input type="number" placeholder="Min Price" value={minP}
-                onChange={e => setMinP(e.target.value)}
-                className="bg-white border border-[#e8d98a] text-[#1a2332] text-xs h-8 px-2.5 rounded-lg outline-none w-[88px] focus:border-[#1a2332] transition-colors listing-font placeholder-[#b0c8e0]" />
-
-              <input type="number" placeholder="Max Price" value={maxP}
-                onChange={e => setMaxP(e.target.value)}
-                className="bg-white border border-[#e8d98a] text-[#1a2332] text-xs h-8 px-2.5 rounded-lg outline-none w-[88px] focus:border-[#1a2332] transition-colors listing-font placeholder-[#b0c8e0]" />
-
-              <button onClick={() => { setPage(1); fetchProperties() }}
-                className="ml-auto flex items-center gap-1.5 bg-[#1a2332] text-white hover:text-[#f0c040] text-xs font-bold h-8 px-4 rounded-lg transition-colors shrink-0">
-                <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                </svg>
-                Search
-              </button>
-            </div>
-
-            {/* Active chips */}
-            {chips.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {chips.map(ch => (
-                  <span key={ch.label} className="inline-flex items-center gap-1 bg-[#fef9c3] border border-[#e8d98a] text-[#1a2332] text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                    {ch.label}
-                    <button onClick={ch.clear} className="text-gray-400 hover:text-[#1a2332]">✕</button>
-                  </span>
-                ))}
-                <button onClick={clearAll} className="text-[10px] text-red-400 hover:text-red-600 font-semibold">Clear all</button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── Results heading ── */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-5 pb-3 flex items-center justify-between">
-          <div>
-            <h1 className="text-lg sm:text-xl font-extrabold text-[#1a2332]">
-              Rental Properties
-              {cityId && cities.find(c => c._id === cityId) && (
-                <span className="text-[#1a4a8a]"> in {cities.find(c => c._id === cityId)?.name}</span>
-              )}
-            </h1>
-            <p className="text-[11px] text-gray-400 mt-0.5">{total} properties available</p>
-          </div>
-        </div>
-
-        {/* ── Grid ── */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-14">
-          {loading ? (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="bg-white rounded-xl border border-[#e8edf5] overflow-hidden animate-pulse">
-                  <div className="h-40 bg-gray-100" />
-                  <div className="p-3 space-y-2">
-                    <div className="h-3 bg-gray-100 rounded w-3/4" />
-                    <div className="h-3 bg-gray-100 rounded w-1/2" />
-                    <div className="h-3 bg-gray-100 rounded w-1/3" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : properties.length === 0 ? (
-            <div className="text-center py-24">
-              <svg className="w-12 h-12 mx-auto text-gray-200 mb-4" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
-              <p className="text-gray-400 font-semibold text-sm">No properties found</p>
-              {chips.length > 0 && (
-                <button onClick={clearAll} className="mt-3 text-xs text-[#1a4a8a] underline font-semibold">Clear all filters</button>
-              )}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-              {properties.map(p => (
-                <PropertyCard
-                  key={p._id}
-                  id={p._id}
-                  images={[p.mainPhoto, ...p.additionalPhotos].filter(Boolean).length > 0
-                    ? [p.mainPhoto, ...p.additionalPhotos].filter(Boolean)
-                    : ["/placeholder.jpg"]}
-                  price={formatPrice(p.price)}
-                  title={p.title}
-                  beds={p.bedrooms}
-                  baths={p.bathrooms}
-                  area={formatSize(p.marla, p.kanal)}
-                  location={`${p.area?.name ?? ""}, ${p.city?.name ?? ""}`}
-                  type={p.propertyType?.name ?? "Property"}
-                  date={timeAgo(p.createdAt)}
-                  href={`/listings/${p._id}`}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-3 mt-10">
-              <button disabled={page === 1} onClick={() => setPage(p => p - 1)}
-                className="px-5 py-2.5 text-xs font-bold border-2 border-[#1a2332] text-[#1a2332] rounded-xl hover:bg-[#1a2332] hover:text-[#f0c040] disabled:opacity-30 transition-colors">
-                ← Prev
-              </button>
-              <span className="text-xs font-semibold text-gray-500">
-                Page {page} of {totalPages}
-              </span>
-              <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}
-                className="px-5 py-2.5 text-xs font-bold border-2 border-[#1a2332] text-[#1a2332] rounded-xl hover:bg-[#1a2332] hover:text-[#f0c040] disabled:opacity-30 transition-colors">
-                Next →
-              </button>
-            </div>
-          )}
-        </div>
-
-      </main>
-    </>
+// ── Page (Server Component) ───────────────────────────────────
+export default function ListingsPage({ searchParams }: PageProps) {
+  // Pass URL params down to client component as initial filter values
+  return (
+    <ListingsClient
+      initialCity={sp(searchParams.city)}
+      initialArea={sp(searchParams.area)}
+      initialPurpose={sp(searchParams.purpose) || 'rent'}
+    />
   )
 }

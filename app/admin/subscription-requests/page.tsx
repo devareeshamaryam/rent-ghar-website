@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+// ─── Types ───────────────────────────────────────────────────────────────────
 interface Plan {
   _id: string;
   name: string;
@@ -19,8 +20,9 @@ interface SubscriptionRequest {
   createdAt: string;
 }
 
+// ─── Popup: Pending Approval ──────────────────────────────────────────────────
 function PendingPopup({ plan, onClose }: { plan: Plan; onClose: () => void }) {
-  const WHATSAPP_NUMBER = "+92-300-1234567";
+  const WHATSAPP_NUMBER = "+92-300-1234567"; // 🔁 Apna number yahan lagao
   const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
     `Assalam o Alaikum! Main "${plan.name}" plan lena chahta/chahti hoon. Price: PKR ${plan.price}. Please confirm karein.`
   )}`;
@@ -33,17 +35,20 @@ function PendingPopup({ plan, onClose }: { plan: Plan; onClose: () => void }) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </div>
+
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Request Submit Ho Gayi! 🎉</h2>
         <p className="text-gray-500 mb-1 text-sm">Plan: <strong>{plan.name}</strong></p>
         <p className="text-gray-500 mb-5 text-sm">
           Price: <strong className="text-green-600">PKR {plan.price}</strong>
         </p>
+
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
           <p className="text-yellow-800 font-semibold text-sm mb-1">⏳ Admin Approval Ka Wait Karein</p>
           <p className="text-yellow-700 text-xs">
             Aapki subscription request admin ko bhej di gayi hai. Jaldi approve ho jaayegi.
           </p>
         </div>
+
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
           <p className="text-green-800 font-semibold text-sm mb-2">💳 Payment Ke Liye WhatsApp Karein</p>
           <p className="text-green-700 text-xs mb-3">
@@ -61,6 +66,7 @@ function PendingPopup({ plan, onClose }: { plan: Plan; onClose: () => void }) {
             {WHATSAPP_NUMBER}
           </a>
         </div>
+
         <button
           onClick={onClose}
           className="w-full py-2.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors text-sm font-medium"
@@ -72,18 +78,17 @@ function PendingPopup({ plan, onClose }: { plan: Plan; onClose: () => void }) {
   );
 }
 
+// ─── Status Badge ─────────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
-  const config = {
-    pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
-    approved: "bg-green-100 text-green-700 border-green-200",
-    rejected: "bg-red-100 text-red-700 border-red-200",
-  }[status] ?? "bg-gray-100 text-gray-700";
+  const config =
+    {
+      pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
+      approved: "bg-green-100 text-green-700 border-green-200",
+      rejected: "bg-red-100 text-red-700 border-red-200",
+    }[status] || "bg-gray-100 text-gray-700";
 
-  const label = {
-    pending: "⏳ Pending",
-    approved: "✅ Approved",
-    rejected: "❌ Rejected",
-  }[status] ?? status;
+  const label =
+    { pending: "⏳ Pending", approved: "✅ Approved", rejected: "❌ Rejected" }[status] || status;
 
   return (
     <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${config}`}>
@@ -92,6 +97,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function SubscriptionPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [myRequests, setMyRequests] = useState<SubscriptionRequest[]>([]);
@@ -99,19 +105,36 @@ export default function SubscriptionPage() {
   const [loading, setLoading] = useState(false);
   const [fetchingPlans, setFetchingPlans] = useState(true);
 
+  // Fetch plans
   useEffect(() => {
-    fetch("/api/admin/plans")
-      .then((r) => r.json())
-      .then((d) => setPlans(d.plans || []))
-      .catch(console.error)
-      .finally(() => setFetchingPlans(false));
+    const fetchPlans = async () => {
+      try {
+        const res = await fetch("/api/admin/plans");
+        const data = await res.json();
+        setPlans(data.plans || []);
+      } catch (err) {
+        console.error("Plans fetch error:", err);
+      } finally {
+        setFetchingPlans(false);
+      }
+    };
+    fetchPlans();
   }, []);
 
+  // Fetch my requests — cookie automatic bhejti hai
   useEffect(() => {
-    fetch("/api/subscription-requests")
-      .then((r) => (r.ok ? r.json() : { requests: [] }))
-      .then((d) => setMyRequests(d.requests || []))
-      .catch(console.error);
+    const fetchMyRequests = async () => {
+      try {
+        const res = await fetch("/api/subscription-requests");
+        if (res.ok) {
+          const data = await res.json();
+          setMyRequests(data.requests || []);
+        }
+      } catch (err) {
+        console.error("My requests fetch error:", err);
+      }
+    };
+    fetchMyRequests();
   }, []);
 
   const handleApply = async (plan: Plan) => {
@@ -126,14 +149,26 @@ export default function SubscriptionPage() {
           planPrice: plan.price,
         }),
       });
+
       const data = await res.json();
-      if (res.status === 401) { alert("Pehle login karein!"); return; }
-      if (!res.ok) { alert(data.error || "Kuch masla hua."); return; }
+
+      if (res.status === 401) {
+        alert("Pehle login karein!");
+        return;
+      }
+
+      if (!res.ok) {
+        alert(data.error || "Kuch masla hua. Dobara try karein.");
+        return;
+      }
+
       setSelectedPlan(plan);
-      fetch("/api/subscription-requests")
-        .then((r) => r.json())
-        .then((d) => setMyRequests(d.requests || []));
-    } catch {
+
+      const reqRes = await fetch("/api/subscription-requests");
+      const reqData = await reqRes.json();
+      setMyRequests(reqData.requests || []);
+    } catch (err) {
+      console.error("Apply error:", err);
       alert("Network error. Please try again.");
     } finally {
       setLoading(false);
@@ -155,13 +190,21 @@ export default function SubscriptionPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-14">
             {plans.map((plan) => {
-              const hasPending = myRequests.some((r) => r.planName === plan.name && r.status === "pending");
-              const hasApproved = myRequests.some((r) => r.planName === plan.name && r.status === "approved");
+              const hasPending = myRequests.some(
+                (r) => r.planName === plan.name && r.status === "pending"
+              );
+              const hasApproved = myRequests.some(
+                (r) => r.planName === plan.name && r.status === "approved"
+              );
+
               return (
                 <div key={plan._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
                   <h2 className="text-xl font-bold text-gray-900 mb-1">{plan.name}</h2>
                   <p className="text-3xl font-extrabold text-blue-600 mb-1">PKR {plan.price}</p>
-                  <p className="text-gray-400 text-sm mb-4">{plan.duration} din · Max {plan.maxProperties} properties</p>
+                  <p className="text-gray-400 text-sm mb-4">
+                    {plan.duration} din · Max {plan.maxProperties} properties
+                  </p>
+
                   {plan.features && plan.features.length > 0 && (
                     <ul className="text-sm text-gray-600 mb-6 flex-1 space-y-1">
                       {plan.features.map((f, i) => (
@@ -171,11 +214,16 @@ export default function SubscriptionPage() {
                       ))}
                     </ul>
                   )}
+
                   <div className="mt-auto">
                     {hasApproved ? (
-                      <div className="text-center py-2 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm font-semibold">✅ Already Active</div>
+                      <div className="text-center py-2 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm font-semibold">
+                        ✅ Already Active
+                      </div>
                     ) : hasPending ? (
-                      <div className="text-center py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-700 text-sm font-semibold">⏳ Approval Pending</div>
+                      <div className="text-center py-2 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-700 text-sm font-semibold">
+                        ⏳ Approval Pending
+                      </div>
                     ) : (
                       <button
                         onClick={() => handleApply(plan)}
@@ -211,7 +259,9 @@ export default function SubscriptionPage() {
                       <td className="px-6 py-4 font-medium text-gray-900">{req.planName}</td>
                       <td className="px-6 py-4 text-gray-600">PKR {req.planPrice}</td>
                       <td className="px-6 py-4"><StatusBadge status={req.status} /></td>
-                      <td className="px-6 py-4 text-gray-400">{new Date(req.createdAt).toLocaleDateString("en-PK")}</td>
+                      <td className="px-6 py-4 text-gray-400">
+                        {new Date(req.createdAt).toLocaleDateString("en-PK")}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -221,7 +271,9 @@ export default function SubscriptionPage() {
         )}
       </div>
 
-      {selectedPlan && <PendingPopup plan={selectedPlan} onClose={() => setSelectedPlan(null)} />}
+      {selectedPlan && (
+        <PendingPopup plan={selectedPlan} onClose={() => setSelectedPlan(null)} />
+      )}
     </div>
   );
 }
